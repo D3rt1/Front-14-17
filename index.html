@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4285f4">
+  <link rel="apple-touch-icon" href="/icons/favicon-128x128.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Заметки (13-18)</title>
+  <link rel="stylesheet" href="https://unpkg.com/chota@latest">
+  <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
+
+  <style>
+    body { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .offline-badge {
+      display: none;
+      background: #ff9800;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      margin-bottom: 10px;
+    }
+    #notes-list { list-style: none; padding: 0; margin-top: 20px; }
+    #notes-list li {
+      background: #f0f4ff;
+      border-left: 4px solid #4285f4;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+    }
+    .tab.active { font-weight: bold; border-bottom: 3px solid #4285f4; }
+    footer { margin-top: 2rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <h2>📝 Мои заметки</h2>
+  <div class="offline-badge" id="offline-badge">Офлайн-режим</div>
+
+  <nav class="tabs is-center">
+    <button id="home-btn" class="tab active col-6">Главная</button>
+    <button id="about-btn" class="tab col-6">О приложении</button>
+  </nav>
+
+  <main id="app-content" style="margin-top: 1.5rem;"></main>
+
+  <footer>
+    <button id="enable-push" class="button success" style="display:none;">
+       Включить уведомления
+    </button>
+    <button id="disable-push" class="button error" style="display:none;">
+       Отключить уведомления
+    </button>
+  </footer>
+
+  <!-- Socket.IO подключён -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
