@@ -47,9 +47,9 @@ loadContent('home');
 
 // --- Получение события от других клиентов ---
 socket.on('taskAdded', (task) => {
-  console.log('📨 Задача от другого клиента:', task);
+  console.log(' Задача от другого клиента:', task);
   const popup = document.createElement('div');
-  popup.textContent = `📝 Новая заметка: ${task.text}`;
+  popup.textContent = `Новая заметка: ${task.text}`;
   popup.style.cssText = `
     position: fixed; top: 15px; right: 15px;
     background: #4285f4; color: white;
@@ -65,27 +65,48 @@ socket.on('taskAdded', (task) => {
 function initNotes() {
   const form = document.getElementById('note-form');
   const input = document.getElementById('note-input');
+  const reminderForm = document.getElementById('reminder-form');
+  const reminderText = document.getElementById('reminder-text');
+  const reminderTime = document.getElementById('reminder-time');
   const list = document.getElementById('notes-list');
 
   function loadNotes() {
     const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-    list.innerHTML = notes
-      .map((note, i) => `
-        <li>
-          ${note}
+    list.innerHTML = notes.map((note, i) => {
+      let reminderInfo = '';
+      if (note.reminder) {
+        const date = new Date(note.reminder);
+        reminderInfo = `<br><small style="color:#4285f4;">⏰ Напоминание: ${date.toLocaleString()}</small>`;
+      }
+      return `
+        <li style="background:#f0f4ff;border-left:4px solid #4285f4;
+                   padding:10px 14px;margin-bottom:8px;border-radius:4px;">
+          ${note.text}${reminderInfo}
           <button onclick="deleteNote(${i})"
             style="float:right;background:none;border:none;
                    color:#e53935;cursor:pointer;font-size:1em;">✕</button>
-        </li>`)
-      .join('');
+        </li>`;
+    }).join('');
   }
 
-  function addNote(text) {
+  function addNote(text, reminderTimestamp = null) {
     const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-    notes.push(text);
+    const newNote = { id: Date.now(), text, reminder: reminderTimestamp };
+    notes.push(newNote);
     localStorage.setItem('notes', JSON.stringify(notes));
     loadNotes();
-    socket.emit('newTask', { text, timestamp: Date.now() });
+
+    if (reminderTimestamp) {
+      // Отправляем напоминание на сервер
+      socket.emit('newReminder', {
+        id: newNote.id,
+        text: text,
+        reminderTime: reminderTimestamp
+      });
+    } else {
+      // Обычная заметка — WebSocket уведомление
+      socket.emit('newTask', { text, timestamp: Date.now() });
+    }
   }
 
   window.deleteNote = function(index) {
@@ -95,12 +116,30 @@ function initNotes() {
     loadNotes();
   };
 
+  // Обычная заметка
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (text) {
       addNote(text);
       input.value = '';
+    }
+  });
+
+  // Заметка с напоминанием
+  reminderForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = reminderText.value.trim();
+    const datetime = reminderTime.value;
+    if (text && datetime) {
+      const timestamp = new Date(datetime).getTime();
+      if (timestamp > Date.now()) {
+        addNote(text, timestamp);
+        reminderText.value = '';
+        reminderTime.value = '';
+      } else {
+        alert('Дата напоминания должна быть в будущем');
+      }
     }
   });
 
@@ -136,9 +175,9 @@ async function subscribeToPush() {
     });
     localStorage.setItem('pushEnabled', 'true');
     registration.active.postMessage({ type: 'SET_PUSH_ENABLED', value: true });
-    console.log('✅ Подписка на push оформлена');
+    console.log('Подписка на push оформлена');
   } catch (err) {
-    console.error('❌ Ошибка подписки:', err);
+    console.error('Ошибка подписки:', err);
   }
 }
 
@@ -157,9 +196,9 @@ async function unsubscribeFromPush() {
       });
       await subscription.unsubscribe();
     }
-    console.log('✅ Отписка выполнена');
+    console.log(' Отписка выполнена');
   } catch (err) {
-    console.error('❌ Ошибка отписки:', err);
+    console.error(' Ошибка отписки:', err);
   }
 }
 
@@ -168,7 +207,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('/sw.js');
-      console.log('✅ SW зарегистрирован:', reg.scope);
+      console.log('SW зарегистрирован:', reg.scope);
 
       const enableBtn = document.getElementById('enable-push');
       const disableBtn = document.getElementById('disable-push');
@@ -210,7 +249,7 @@ if ('serviceWorker' in navigator) {
       }
 
     } catch (err) {
-      console.error('❌ Ошибка регистрации SW:', err);
+      console.error('Ошибка регистрации SW:', err);
     }
   });
 }

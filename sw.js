@@ -86,6 +86,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
+// --- Push с кнопкой "Отложить" ---
 self.addEventListener('push', (event) => {
   console.log('[SW] Push получен, pushEnabled =', pushEnabled);
 
@@ -94,16 +95,48 @@ self.addEventListener('push', (event) => {
     return;
   }
 
-  let data = { title: 'Новая заметка', body: '' };
+  let data = { title: 'Новое уведомление', body: '', reminderId: null };
   if (event.data) {
     data = event.data.json();
   }
 
+  const options = {
+    body: data.body,
+    icon: '/icons/favicon-128x128.png',
+    badge: '/icons/favicon-48x48.png',
+    data: { reminderId: data.reminderId }
+  };
+
+  // Кнопка "Отложить" только для напоминаний
+  if (data.reminderId) {
+    options.actions = [
+      { action: 'snooze', title: 'Отложить на 5 минут' }
+    ];
+  }
+
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icons/favicon-128x128.png',
-      badge: '/icons/favicon-48x48.png'
-    })
+    self.registration.showNotification(data.title, options)
   );
+});
+
+// --- Обработка нажатий на уведомление ---
+self.addEventListener('notificationclick', (event) => {
+  const notification = event.notification;
+  const action = event.action;
+
+  if (action === 'snooze') {
+    const reminderId = notification.data.reminderId;
+    event.waitUntil(
+      fetch(`https://localhost:3001/snooze?reminderId=${reminderId}`, {
+        method: 'POST'
+      })
+        .then(() => {
+          console.log('[SW] Напоминание отложено');
+          notification.close();
+        })
+        .catch(err => console.error('[SW] Snooze failed:', err))
+    );
+  } else {
+    notification.close();
+  }
 });
